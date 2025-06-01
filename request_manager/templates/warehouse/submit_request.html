@@ -1,0 +1,43 @@
+{% extends "warehouse/base.html" %}
+{% block title %}Warehouse Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 fw-bold text-center">Warehouse Requests</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle shadow-sm">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {# Example row, replace with dynamic data later #}
+                <tr>
+                    <td>1</td>
+                    <td>Product A</td>
+                    <td>Order Submit</td>
+                    <td>10</td>
+                    <td>Urgent delivery needed</td>
+                    <td><span class="badge bg-warning text-dark">Pending</span></td>
+                    <td><span class="badge bg-danger">Urgent</span></td>
+                    <td>2024-05-26 14:30</td>
+                    <td>
+                        <button class="btn btn-success btn-sm">Fulfill</button>
+                        <button class="btn btn-danger btn-sm">Decline</button>
+                    </td>
+                </tr>
+                <!-- Add more rows dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

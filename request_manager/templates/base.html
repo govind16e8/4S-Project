@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}Sales | Request Manager{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Sales Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Sales Manager</a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('submit_request') }}">Submit Request</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('check_inventory') }}">Check Inventory</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sales_report') }}">Sales Report</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('request_history') }}">Request History</a></li>
+                </ul>
+                <button class="btn btn-danger" onclick="window.location.href='/logout'">Logout</button>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
+
+
+# # Sales 
+# @app.route('/submit_request', methods=['POST'])
+# @login_required
+# def submit_request():
+#     data = request.get_json()
+
+#     if "description" not in data:
+#         return jsonify({"error": "Missing description field"}), 400
+
+#     new_request = Request(
+#         user_id=current_user.id,
+#         request_type=data.get("request_type", "General"),  # ✅ Provide a default type to avoid errors
+#         description=data["description"],
+#         status="Pending",
+#         timestamp=datetime.utcnow(),
+#         sla_breach=False
+#     )
+#     db.session.add(new_request)
+#     db.session.commit()
+    
+#     return jsonify({"message": "Request submitted successfully!"})
+
+# @app.route('/user_request_history')
+# @login_required
+# def user_request_history():
+#     status_filter = request.args.get("status")
+#     ticket_id = request.args.get("ticket_id")
+
+#     query = SupportTicket.query.filter_by(user_id=current_user.id)
+
+#     if status_filter:
+#         query = query.filter_by(status=status_filter)
+#     if ticket_id:
+#         query = query.filter(SupportTicket.id == ticket_id)
+
+#     user_requests = query.all()
+
+#     history = [{
+#         "id": req.id,
+#         "issue_type": req.issue_type,  # ✅ Replace module with issue_type
+#         "description": req.description,
+#         "status": req.status,
+#         "priority": req.priority,
+#         "timestamp": req.timestamp.strftime("%Y-%m-%d %H:%M")
+#     } for req in user_requests]
+
+#     return jsonify({"requests": history})
+
+
+
+# @app.route('/sales_report')
+# @login_required
+# def sales_report():
+#     pending_requests = Request.query.filter_by(status="Pending").count()
+#     fulfilled_requests = Request.query.filter_by(status="Fulfilled").count()
+#     sla_breached = Request.query.filter_by(sla_breach=True).count()
+
+#     return jsonify({
+#         "pending": pending_requests,
+#         "fulfilled": fulfilled_requests,
+#         "sla_breached": sla_breached
+#     })
+
+# # Submit a stock update request
+# @app.route('/submit_stock_request', methods=['POST'])
+# @login_required
+# def submit_stock_request():
+#     data = request.get_json()
+    
+#     if not data or "description" not in data:
+#         return jsonify({"error": "Invalid request format"}), 400
+
+#     new_request = WarehouseRequest(
+#         user_id=current_user.id,
+#         request_type="Stock Update",
+#         description=data["description"],
+#         status="Pending",
+#         timestamp=datetime.utcnow()
+#     )
+#     db.session.add(new_request)
+#     db.session.commit()
+    
+#     return jsonify({"message": "Stock update request submitted successfully!"})
+
+
+# # Submit a support ticket
+# @app.route('/submit_support_ticket', methods=['POST'])
+# @login_required
+# def submit_support_ticket():
+#     data = request.get_json()
+    
+#     if not data or "description" not in data:
+#         return jsonify({"error": "Invalid request format"}), 400
+
+#     new_ticket = SupportTicket(
+#         user_id=current_user.id,
+#         issue_type="General Issue",
+#         description=data["description"],
+#         status="Pending",
+#         priority="Normal",
+#         timestamp=datetime.utcnow()
+#     )
+#     db.session.add(new_ticket)
+#     db.session.commit()
+    
+#     return jsonify({"message": "Support ticket submitted successfully!"})
+
+# @app.route('/respond_request/<int:request_id>', methods=['POST'])
+# @login_required
+# def respond_request(request_id):
+#     request_type = request.args.get("type")  # Get request type from frontend
+
+#     if request_type == "Sales":
+#         request_entry = Request.query.get(request_id)
+#         if request_entry:
+#             request_entry.status = "Reviewed by Sales"
+#     elif request_type == "Warehouse":
+#         request_entry = WarehouseRequest.query.get(request_id)
+#         if request_entry:
+#             request_entry.status = "Reviewed by Warehouse"
+#     elif request_type == "Production":
+#         request_entry = ProductionRequest.query.get(request_id)
+#         if request_entry:
+#             request_entry.status = "Reviewed by Production"
+#     else:
+#         return jsonify({"error": "Invalid request type"}), 400
+
+#     db.session.commit()
+#     return jsonify({"message": f"{request_type} response sent successfully!"})
+
+
+
+
+# @app.route('/dashboard')
+# @login_required
+# def dashboard():
+#     role_dashboards = {
+#         "Sales": "sales_dashboard.html",
+#         "Warehouse": "warehouse_dashboard.html",
+#         "Production": "production_dashboard.html",
+#         "Support": "support_dashboard.html"
+#     }
+#     return render_template(role_dashboards.get(session['role'], "default_dashboard.html"))
+
+
+# @app.route('/sales_dashboard')
+# @login_required
+# def sales_dashboard():
+#     return render_template("sales_dashboard.html")
+
+# @app.route('/warehouse_dashboard')
+# @login_required
+# def warehouse_dashboard():
+#     return render_template("warehouse_dashboard.html")
+
+# @app.route('/production_dashboard')
+# @login_required
+# def production_dashboard():
+#     return render_template("production_dashboard.html")
+
+# @app.route('/support_dashboard')
+# @login_required
+# def support_dashboard():
+#     return render_template("support_dashboard.html")
+
+# # Update stock availability (Warehouse Officer)
+# @app.route('/update_stock', methods=['POST'])
+# def update_stock():
+#     data = request.json
+#     request_entry = Request.query.get(data['request_id'])
+#     if request_entry:
+#         request_entry.status = "In Review"
+#         db.session.commit()
+#         return jsonify({"message": "Stock update recorded."})
+#     return jsonify({"error": "Request not found"}), 404
+
+# @app.route('/check_inventory')
+# @login_required
+# def check_inventory():
+#     inventory_data = {"stock": 450}  # Mock response, replace with real DB query
+#     return jsonify(inventory_data)
+
+# @app.route('/warehouse_report')
+# @login_required
+# def warehouse_report():
+#     pending_shipments = WarehouseRequest.query.filter_by(status="Pending").count()
+#     fulfilled_orders = WarehouseRequest.query.filter_by(status="Fulfilled").count()
+#     delayed_shipments = WarehouseRequest.query.filter_by(status="Delayed").count()
+
+#     return jsonify({
+#         "pending": pending_shipments,
+#         "fulfilled": fulfilled_orders,
+#         "delayed": delayed_shipments
+#     })
+
+# @app.route('/warehouse_request_history')
+# @login_required
+# def warehouse_request_history():
+#     requests = WarehouseRequest.query.filter_by(user_id=current_user.id).all()
+#     history = [{
+#         "id": req.id,
+#         "request_type": req.request_type,
+#         "status": req.status,
+#         "sla_breach": req.sla_breach
+#     } for req in requests]
+    
+#     return jsonify({"requests": history})
+
+# @app.route('/respond_requests')
+# @login_required
+# def respond_requests():
+#     warehouse_requests = WarehouseRequest.query.filter_by(status="Awaiting Warehouse Response").all()
+#     production_requests = ProductionRequest.query.filter_by(status="Awaiting Production Response").all()
+
+#     request_list = [{
+#         "id": req.id,
+#         "module": "Warehouse",
+#         "request_type": req.request_type,
+#         "status": req.status
+#     } for req in warehouse_requests]
+
+#     request_list += [{
+#         "id": req.id,
+#         "module": "Production",
+#         "request_type": req.request_type,
+#         "status": req.status
+#     } for req in production_requests]
+
+#     return jsonify({"requests": request_list})
+
+# @app.route('/submit_work_order', methods=['POST'])
+# @login_required
+# def submit_work_order():
+#     data = request.get_json()
+    
+#     if not data or "description" not in data:
+#         return jsonify({"error": "Invalid request format"}), 400
+
+#     new_request = ProductionRequest(
+#         user_id=current_user.id,
+#         task="Work Order",
+#         description=data["description"],
+#         status="Pending",
+#         priority="Normal",
+#         timestamp=datetime.utcnow()
+#     )
+#     db.session.add(new_request)
+#     db.session.commit()
+    
+#     return jsonify({"message": "Work Order request submitted successfully!"})
+
+# @app.route('/production_report')
+# @login_required
+# def production_report():
+#     pending_tasks = ProductionRequest.query.filter_by(status="Pending").count()
+#     fulfilled_orders = ProductionRequest.query.filter_by(status="Fulfilled").count()
+#     delayed_tasks = ProductionRequest.query.filter_by(status="Delayed").count()
+
+#     return jsonify({
+#         "pending": pending_tasks,
+#         "fulfilled": fulfilled_orders,
+#         "delayed": delayed_tasks
+#     })
+
+# @app.route('/production_request_history')
+# @login_required
+# def production_request_history():
+#     requests = ProductionRequest.query.filter_by(user_id=current_user.id).all()
+#     history = [{
+#         "id": req.id,
+#         "task": req.task,
+#         "status": req.status,
+#         "priority": req.priority
+#     } for req in requests]
+    
+#     return jsonify({"requests": history})
+
+
+# # Confirm shipment (Warehouse Officer)
+# @app.route('/confirm_shipment', methods=['POST'])
+# def confirm_shipment():
+#     data = request.json
+#     request_entry = Request.query.get(data['request_id'])
+#     if request_entry:
+#         request_entry.status = "Fulfilled"
+#         db.session.commit()
+#         return jsonify({"message": "Shipment confirmed."})
+#     return jsonify({"error": "Request not found"}), 404
+
+# # Log production delays (Production Planner)
+# @app.route('/production_delay', methods=['POST'])
+# def production_delay():
+#     data = request.json
+#     request_entry = Request.query.get(data['request_id'])
+#     if request_entry:
+#         request_entry.status = "Delayed"
+#         db.session.commit()
+#         return jsonify({"message": "Production delay recorded."})
+#     return jsonify({"error": "Request not found"}), 404
+
+# # Handle support issues (Support Agent)
+# @app.route('/support_issue', methods=['POST'])
+# def support_issue():
+#     data = request.json
+#     new_request = Request(user_id=data['user_id'], request_type="Complaint", status="In Review")
+#     db.session.add(new_request)
+#     db.session.commit()
+#     return jsonify({"message": "Support request logged."})
+
+# def auto_tag_request(description):
+#     """Automatically assigns a request tag based on keyword detection"""
+#     for tag, keywords in TAG_KEYWORDS.items():
+#         if any(keyword in description.lower() for keyword in keywords):
+#             return tag
+#     return "General Inquiry"  # Default tag
+
+# @app.route('/check_sla/<int:request_id>', methods=['GET'])
+# def check_sla(request_id):
+#     request_entry = Request.query.get(request_id)
+#     if not request_entry:
+#         return jsonify({"error": "Request not found"}), 404
+
+#     if check_sla_breach(request_entry):
+#         request_entry.sla_breach = True
+#         db.session.commit()
+#         return jsonify({"message": "SLA breached!", "request_id": request_id})
+    
+#     return jsonify({"message": "Request is within SLA limits"})
+
+# @app.route('/export_sla_report', methods=['GET'])
+# def export_sla_report():
+#     message = generate_sla_report()
+#     return jsonify({"message": message})
+
+# @app.route('/update_status', methods=['POST'])
+# def update_status():
+#     data = request.json
+#     request_entry = Request.query.get(data['request_id'])
+
+#     if not request_entry:
+#         return jsonify({"error": "Request not found"}), 404
+
+#     success = request_entry.update_status(data['new_status'])
+#     if success:
+#         return jsonify({"message": f"Request status updated to {data['new_status']}!"})
+    
+#     return jsonify({"error": "Invalid status transition"}), 400
+
+
+# @app.route('/request_history')
+# @login_required
+# def request_history():
+#     requests = Request.query.filter_by(user_id=current_user.id).all()
+#     history = [{
+#         "id": req.id,
+#         "request_type": req.request_type,
+#         "status": req.status,
+#         "sla_breach": req.sla_breach
+#     } for req in requests]
+    
+#     return jsonify({"requests": history})
+
+# @app.route('/check_ticket_status')
+# @login_required
+# def check_ticket_status():
+#     open_tickets = SupportTicket.query.filter_by(status="Pending").count()
+#     return jsonify({"open": open_tickets})
+
+# @app.route('/support_metrics')
+# @login_required
+# def support_metrics():
+#     pending_tickets = SupportTicket.query.filter_by(status="Pending").count()
+#     resolved_tickets = SupportTicket.query.filter_by(status="Resolved").count()
+#     urgent_tickets = SupportTicket.query.filter_by(priority="High").count()
+
+#     return jsonify({
+#         "pending": pending_tickets,
+#         "resolved": resolved_tickets,
+#         "urgent": urgent_tickets
+#     })
+
+# @app.route('/support_ticket_history')
+# @login_required
+# def support_ticket_history():
+#     status_filter = request.args.get("status")
+
+#     query = SupportTicket.query.filter_by(user_id=current_user.id)
+#     if status_filter:
+#         query = query.filter_by(status=status_filter)
+
+#     tickets = query.all()
+    
+#     history = [{
+#         "id": ticket.id,
+#         "task": ticket.issue_type,  # ✅ Ensure correct mapping
+#         "description": ticket.description,
+#         "status": ticket.status,
+#         "priority": ticket.priority,
+#         "timestamp": ticket.timestamp.strftime("%Y-%m-%d %H:%M")
+#     } for ticket in tickets]
+
+#     return jsonify({"requests": history})
+
+
+
+
+
+# @app.route('/respond_support_tickets')
+# @login_required
+# def respond_support_tickets():
+#     tickets = SupportTicket.query.filter_by(status="Awaiting Support Response").all()
+#     ticket_list = [{
+#         "id": ticket.id,
+#         "requestor": ticket.user_id,
+#         "issue_type": ticket.issue_type,
+#         "status": ticket.status
+#     } for ticket in tickets]
+    
+#     return jsonify({"requests": ticket_list})
+
+# @app.route('/respond_support_ticket/<int:ticket_id>', methods=['POST'])
+# @login_required
+# def respond_support_ticket(ticket_id):
+#     ticket_entry = SupportTicket.query.get(ticket_id)
+#     if ticket_entry:
+#         ticket_entry.status = "Reviewed by Support"
+#         db.session.commit()
+#         return jsonify({"message": "Support response sent successfully!"})
+    
+#     return jsonify({"error": "Ticket not found"}), 404
+
+
+# @app.route('/incoming_requests')
+# @login_required
+# def incoming_requests():
+#     requests = Request.query.filter_by(status="Awaiting Response").all()
+#     request_list = [{"id": req.id, "request_type": req.request_type} for req in requests]
+#     return jsonify({"requests": request_list})
+
+# @app.route('/respond_request_sales/<int:request_id>', methods=['POST'])
+# @login_required
+# def respond_request_sales(request_id):
+#     request_entry = Request.query.get(request_id)
+#     if request_entry:
+#         request_entry.status = "Reviewed by Sales"
+#         db.session.commit()
+#         return jsonify({"message": "Response sent successfully!"})
+    
+#     return jsonify({"error": "Request not found"}), 404
+
+# @app.route('/respond_request_warehouse/<int:request_id>', methods=['POST'])
+# @login_required
+# def respond_request_warehouse(request_id):
+#     request_entry = WarehouseRequest.query.get(request_id)
+#     if request_entry:
+#         request_entry.status = "Reviewed by Warehouse"
+#         db.session.commit()
+#         return jsonify({"message": "Response sent successfully!"})
+    
+#     return jsonify({"error": "Request not found"}), 404
+
+# @app.route('/respond_request_production/<int:request_id>', methods=['POST'])
+# @login_required
+# def respond_request_production(request_id):
+#     request_entry = ProductionRequest.query.get(request_id)
+#     if request_entry:
+#         request_entry.status = "Reviewed by Production"
+#         db.session.commit()
+#         return jsonify({"message": "Response sent successfully!"})
+    
+#     return jsonify({"error": "Request not found"}), 404

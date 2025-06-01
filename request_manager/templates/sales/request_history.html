@@ -1,0 +1,164 @@
+{% extends "sales/base.html" %}
+{% block title %}Request History | Sales{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white text-center rounded-top">
+                    <h3 class="mb-0">📜 Request History</h3>
+                </div>
+                <div class="card-body">
+                    <form class="row g-3 mb-4 align-items-end">
+                        <div class="col-md-3">
+                            <label for="priorityFilter" class="form-label mb-1 fw-semibold">Priority</label>
+                            <select id="priorityFilter" class="form-select">
+                                <option value="">All Priorities</option>
+                                <option value="Urgent">Urgent</option>
+                                <option value="Normal">Normal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label mb-1 fw-semibold">Status</label>
+                            <select id="statusFilter" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Fulfilled">Fulfilled</option>
+                                <option value="Declined">Declined</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchId" class="form-label mb-1 fw-semibold">Search by Request ID</label>
+                            <div class="input-group">
+                                <input type="text" id="searchId" class="form-control" placeholder="Enter Request ID">
+                                <button class="btn btn-danger" id="deleteRequestBtn" type="button">
+                                    <i class="bi bi-trash"></i> Delete Request
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle shadow-sm" id="historyTable">
+                            <thead class="table-primary">
+                                <tr class="text-center">
+                                    <th>ID</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Qty</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Date</th>
+                                    <th>SLA Breach</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in requests %}
+                                <tr>
+                                    <td class="text-center">{{ req.id }}</td>
+                                    <td>{{ req.customer.name if req.customer else '-' }}</td>
+                                    <td>{{ req.product_name }}</td>
+                                    <td>{{ req.request_category }}</td>
+                                    <td class="text-center">{{ req.qty }}</td>
+                                    <td>
+                                        <span class="d-inline-block text-truncate" style="max-width: 200px;" title="{{ req.description }}">
+                                            {{ req.description }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if req.status == "Pending" %}
+                                            <span class="badge bg-warning text-dark px-3 py-2">{{ req.status }}</span>
+                                        {% elif req.status == "Fulfilled" %}
+                                            <span class="badge bg-success px-3 py-2">{{ req.status }}</span>
+                                        {% elif req.status == "Declined" %}
+                                            <span class="badge bg-danger px-3 py-2">{{ req.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary px-3 py-2">{{ req.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if req.priority == "Urgent" %}
+                                            <span class="badge bg-danger px-3 py-2">{{ req.priority }}</span>
+                                        {% else %}
+                                            <span class="badge bg-info text-dark px-3 py-2">{{ req.priority }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ req.timestamp }}</td>
+                                    <td class="text-center">
+                                        {% if req.sla_breach %}
+                                            <span class="badge bg-danger px-3 py-2">Breached</span>
+                                        {% else %}
+                                            <span class="badge bg-success px-3 py-2">On Time</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">No requests found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const priorityFilter = document.getElementById("priorityFilter");
+    const statusFilter = document.getElementById("statusFilter");
+    const searchId = document.getElementById("searchId");
+    const table = document.getElementById("historyTable");
+    const rows = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
+
+    function filterTable() {
+        const priority = priorityFilter.value.toLowerCase();
+        const status = statusFilter.value.toLowerCase();
+        const idSearch = searchId.value.trim();
+
+        for (let row of rows) {
+            // Skip "no requests found" row
+            if (row.children.length < 9) continue;
+            const rowId = row.cells[0].textContent.trim();
+            const rowStatus = row.cells[5].textContent.trim().toLowerCase();
+            const rowPriority = row.cells[6].textContent.trim().toLowerCase();
+
+            let show = true;
+            if (priority && rowPriority !== priority) show = false;
+            if (status && rowStatus !== status) show = false;
+            if (idSearch && !rowId.includes(idSearch)) show = false;
+
+            row.style.display = show ? "" : "none";
+        }
+    }
+
+    priorityFilter.addEventListener("change", filterTable);
+    statusFilter.addEventListener("change", filterTable);
+    searchId.addEventListener("input", filterTable);
+
+    document.getElementById("deleteRequestBtn").addEventListener("click", async function() {
+        const id = document.getElementById("searchId").value.trim();
+        if (!id) {
+            alert("Please enter a Request ID to delete.");
+            return;
+        }
+        if (!confirm("Are you sure you want to delete request ID " + id + "?")) return;
+        const response = await fetch(`/delete_request/${id}`, {
+            method: "DELETE"
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert("Request deleted successfully.");
+            window.location.reload();
+        } else {
+            alert(data.error || "Failed to delete request.");
+        }
+    });
+});
+</script>
+{% endblock %}

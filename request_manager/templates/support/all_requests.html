@@ -1,0 +1,67 @@
+<!-- filepath: c:\Users\fulwa\Downloads\New\request_manager\templates\support\all_requests.html -->
+{% extends "support/base.html" %}
+{% block title %}All Sales Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-primary">All Sales Requests</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Date</th>
+                    <th>SLA Breach</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in all_requests %}
+                <tr {% if req.sla_breach %}class="table-danger"{% endif %}>
+                    <td>{{ req.id }}</td>
+                    <td>{{ req.customer.name if req.customer else '-' }}</td>
+                    <td>{{ req.product_name }}</td>
+                    <td>{{ req.request_category }}</td>
+                    <td>{{ req.qty }}</td>
+                    <td>{{ req.status }}</td>
+                    <td>
+                        {% if req.priority == "Urgent" %}
+                            <span class="badge bg-danger">{{ req.priority }}</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">{{ req.priority }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        {% if req.sla_breach %}
+                            <span class="badge bg-danger">Breached</span>
+                        {% else %}
+                            <span class="badge bg-success">On Time</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.sla_breach %}
+                            <a href="{{ url_for('submit_ticket', order_request_id=req.id) }}" class="btn btn-sm btn-warning">
+                                Raise Support Ticket
+                            </a>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted">No requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

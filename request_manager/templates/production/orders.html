@@ -1,0 +1,149 @@
+{% extends "production/base.html" %}
+{% block title %}Production Orders{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 fw-bold text-center">Production Orders</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle shadow-sm">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.id }}</td>
+                    <td>{{ req.product }}</td>
+                    <td>{{ req.qty }}</td>
+                    <td>{{ req.description }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'warning' if req.status == 'Pending' else 'success' if req.status == 'Completed' else 'danger' }}">{{ req.status }}</span>
+                    </td>
+                    <td>{{ req.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>
+                        {% if req.status == "Pending" %}
+                            <button 
+                                class="btn btn-sm btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#produceModal"
+                                data-order-id="{{ req.id }}"
+                                data-product="{{ req.product }}"
+                                data-qty="{{ req.qty }}"
+                            >
+                                Review
+                            </button>
+                        {% elif req.status == "In Process" %}
+                        {% elif req.status == "Completed" %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif req.status == "Cancelled" %}
+                            <span class="badge bg-danger">Cancelled</span>
+                        {% elif req.status == "In Process" %}
+                            <span class="badge bg-warning text-dark">In Process</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Produce Modal -->
+<div class="modal fade" id="produceModal" tabindex="-1" aria-labelledby="produceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="produceForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="produceModalLabel">Start Production</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Product and order details will be filled by JS -->
+        <div id="produceDetails"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Start Production</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+let resourcesByProduct = {{ resources_by_product|tojson }};
+
+document.addEventListener("DOMContentLoaded", function() {
+    var produceModal = document.getElementById('produceModal');
+    produceModal.addEventListener('show.bs.modal', function (event) {
+        // Clear previous error message
+        let detailsDiv = document.getElementById('produceDetails');
+        let oldError = detailsDiv.querySelector('.unavailable-error');
+        if (oldError) oldError.remove();
+
+        var button = event.relatedTarget;
+        var orderId = button.getAttribute('data-order-id');
+        var product = button.getAttribute('data-product');
+        var qty = parseInt(button.getAttribute('data-qty'));
+
+        // Show product and resource details
+        var normalizedProduct = product.trim().toLowerCase();
+
+        let detailsHtml = `<p><strong>Product:</strong> ${product}</p>
+            <p><strong>Order Quantity:</strong> ${qty}</p>
+            <h6>Resource Consumption:</h6>
+            <ul>`;
+        if (resourcesByProduct[normalizedProduct]) {
+            resourcesByProduct[normalizedProduct].forEach(function(res) {
+                detailsHtml += `<li>${res.name} (${res.type}): ${res.quantity * qty}</li>`;
+            });
+        } else {
+            detailsHtml += `<li>No resource data for this product.</li>`;
+        }
+        detailsHtml += `</ul>`;
+        document.getElementById('produceDetails').innerHTML = detailsHtml;
+
+        // Store orderId in form for submission
+        document.getElementById('produceForm').setAttribute('data-order-id', orderId);
+    });
+
+    // Handle form submit
+    document.getElementById('produceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let orderId = this.getAttribute('data-order-id');
+        fetch(`/production/orders/produce/${orderId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.href = "/production/in_process";
+            } else if (data.unavailable) {
+                // Remove previous error message
+                let detailsDiv = document.getElementById('produceDetails');
+                let oldError = detailsDiv.querySelector('.unavailable-error');
+                if (oldError) oldError.remove();
+                // Show unavailable resources in red
+                let msg = `<div class="unavailable-error" style="color:red;"><strong>Unavailable resources:</strong><ul>`;
+                data.unavailable.forEach(function(item) {
+                    msg += `<li>${item}</li>`;
+                });
+                msg += `</ul></div>`;
+                detailsDiv.insertAdjacentHTML('beforeend', msg);
+            } else {
+                alert(data.error || "Failed to start production.");
+            }
+        });
+    });
+});
+
+console.log("resourcesByProduct keys:", Object.keys(resourcesByProduct));
+</script>
+{% endblock %}

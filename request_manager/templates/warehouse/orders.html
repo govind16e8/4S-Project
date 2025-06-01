@@ -1,0 +1,129 @@
+{% extends "warehouse/base.html" %}
+{% block title %}Warehouse Orders{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 fw-bold text-center">Order Requests from Sales</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle shadow-sm">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Date</th>
+                    <th>Warehouse Check</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.id }}</td>
+                    <td>{{ req.product_name }}</td>
+                    <td>{{ req.qty }}</td>
+                    <td>{{ req.description }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'warning' if req.status == 'Pending' else 'success' if req.status == 'Fulfilled' else 'danger' }}">{{ req.status }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'danger' if req.priority == 'Urgent' else 'secondary' }}">{{ req.priority }}</span>
+                    </td>
+                    <td>{{ req.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>
+                    {% if req.status == "Pending" %}
+                        {% set inv = inventory_map.get(req.product_name) %}
+                        {% if inv and inv.stock >= req.qty %}
+                            <span class="text-success fw-semibold">Available</span>
+                            <div class="dropdown d-inline ms-2">
+                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Action
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <form method="post" action="{{ url_for('warehouse_fulfill_order', request_id=req.id) }}">
+                                            <button type="submit" class="dropdown-item text-success">Confirm</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form method="post" action="{{ url_for('warehouse_decline_order', request_id=req.id) }}">
+                                            <button type="submit" class="dropdown-item text-danger">Decline</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% elif inv %}
+                            <span class="text-danger fw-semibold">
+                                Missing: {{ req.qty - inv.stock }}
+                            </span>
+                            <div class="dropdown d-inline ms-2">
+                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Action
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <form method="post" action="{{ url_for('warehouse_decline_order', request_id=req.id) }}">
+                                            <button type="submit" class="dropdown-item text-danger">Decline</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <button type="button"
+                                            class="dropdown-item text-warning"
+                                            onclick="refillOrder({{ req.id }}, '{{ req.product_name }}', {{ req.qty - inv.stock }})">
+                                            Refill Order
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <span class="text-danger fw-semibold">Product Not in Inventory</span>
+                            <div class="dropdown d-inline ms-2">
+                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Action
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <form method="post" action="{{ url_for('warehouse_decline_order', request_id=req.id) }}">
+                                            <button type="submit" class="dropdown-item text-danger">Decline</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    function refillOrder(requestId, productName, missingQty) {
+        if (missingQty <= 0) {
+            alert("No missing quantity to refill.");
+            return;
+        }
+        fetch("/warehouse/orders/refill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                product_name: productName,
+                qty: missingQty
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Refill order sent to production!");
+                location.reload();
+            } else {
+                alert(data.error || "Failed to send refill order.");
+            }
+        });
+    }
+</script>
+{% endblock %}

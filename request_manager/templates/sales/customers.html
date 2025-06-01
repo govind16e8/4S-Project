@@ -1,0 +1,77 @@
+{% extends "sales/base.html" %}
+{% block title %}Customer Management{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 fw-bold text-center">Customer Management</h2>
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Add New Customer</div>
+        <div class="card-body">
+            <form id="addCustomerForm" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="name" placeholder="Customer Name" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="phone" placeholder="Phone">
+                </div>
+                <div class="col-md-4">
+                    <input type="email" class="form-control" name="email" placeholder="Email">
+                </div>
+                <div class="col-md-12 text-end">
+                    <button type="submit" class="btn btn-success">Add Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header bg-secondary text-white">Customer List</div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Unique ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customers %}
+                    <tr>
+                        <td>{{ c.unique_id }}</td>
+                        <td>{{ c.name }}</td>
+                        <td>{{ c.phone or '-' }}</td>
+                        <td>{{ c.email or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No customers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('addCustomerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        name: form.name.value,
+        phone: form.phone.value,
+        email: form.email.value
+    };
+    const response = await fetch('/sales/customers', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (result.success) {
+        window.location.reload();
+    } else {
+        alert(result.error || "Failed to add customer.");
+    }
+});
+</script>
+{% endblock %}

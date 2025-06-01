@@ -1,0 +1,134 @@
+{% extends "sales/base.html" %}
+{% block title %}Submit Request | Sales{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center min-vh-80">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white text-center rounded-top">
+                <h3 class="mb-0">📝 Submit New Request</h3>
+            </div>  
+            <div class="card-body p-4">
+                <form id="requestForm" autocomplete="off">
+                        <div class="mb-3">
+                            <label for="customerId" class="form-label fw-semibold">Customer</label>
+                            <select class="form-select" id="customerId" name="customer_id" required>
+                                <option value="">Select Customer</option>
+                                {% for customer in customers %}
+                                    <option value="{{ customer.unique_id }}">{{ customer.name }} ({{ customer.unique_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    <div class="mb-3">
+                        <label for="product" class="form-label fw-semibold">Product Name</label>
+                        <select class="form-select" id="productName" name="product_name" required>
+                            <option value="">Select Product</option>
+                            {% for product in available_products %}
+                                <option value="{{ product.product_name }}">{{ product.product_name }}</option>
+                            {% endfor %}
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="otherProductDiv" style="display:none;">
+                        <label for="otherProduct" class="form-label fw-semibold">Enter Product Name</label>
+                        <input type="text" id="otherProduct" class="form-control" placeholder="Enter product name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label fw-semibold">Request Category</label>
+                        <select id="category" class="form-select" required>
+                            <option value="" disabled selected>Select category</option>
+                            <option value="Product Availability">Product Availability</option>
+                            <option value="Pricing Query">Pricing Query</option>
+                            <option value="Order Submit">Order Submit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="qtyDiv" style="display:none;">
+                        <label for="qty" class="form-label fw-semibold">Quantity</label>
+                        <input type="number" min="1" id="qty" class="form-control" placeholder="Enter quantity">
+                    </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label fw-semibold">Priority</label>
+                        <select id="priority" class="form-select" required>
+                            <option value="Normal" selected>Normal</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label fw-semibold">Message</label>
+                        <textarea id="message" class="form-control" rows="3" placeholder="Enter your message"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-outline-secondary px-4">Reset</button>
+                        <button type="submit" class="btn btn-primary px-4">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const category = document.getElementById("category");
+const qtyDiv = document.getElementById("qtyDiv");
+category.addEventListener("change", function() {
+    if (category.value === "Product Availability" || category.value === "Pricing Query" || category.value === "Order Submit") {
+        qtyDiv.style.display = "block";
+        document.getElementById("qty").required = true;
+    } else {
+        qtyDiv.style.display = "none";
+        document.getElementById("qty").required = false;
+    }
+});
+
+const product = document.getElementById("productName");
+const otherProductDiv = document.getElementById("otherProductDiv");
+const otherProduct = document.getElementById("otherProduct");
+product.addEventListener("change", function() {
+    if (product.value === "Others") {
+        otherProductDiv.style.display = "block";
+        otherProduct.required = true;
+    } else {
+        otherProductDiv.style.display = "none";
+        otherProduct.required = false;
+    }
+});
+
+// Hide dynamic fields on reset
+document.getElementById("requestForm").addEventListener("reset", function() {
+    setTimeout(() => {
+        qtyDiv.style.display = "none";
+        document.getElementById("qty").required = false;
+        otherProductDiv.style.display = "none";
+        otherProduct.required = false;
+    }, 0);
+});
+
+document.getElementById("requestForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+    let productVal = product.value === "Others" ? otherProduct.value : product.value;
+    let categoryVal = document.getElementById("category").value;
+    let qty = document.getElementById("qty").value;
+    let message = document.getElementById("message").value;
+    let priority = document.getElementById("priority").value; // NEW
+    let customerId = document.getElementById("customerId").value;
+    let payload = {
+        customer_id: customerId,
+        product_name: productVal,
+        request_type: categoryVal,
+        qty: qty,
+        description: message,
+        priority: priority
+    };
+    let response = await fetch("/sales/submit_request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    let data = await response.json();
+    if (data.error) {
+        alert("Error: " + data.error);
+    } else {
+        window.location.href = "/request_history";
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends "sales/base.html" %}
+{% block title %}Sales Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Welcome, {{ current_user.email.split('@')[0]|capitalize }}!</h2>
+        <p class="lead text-secondary">Track your request activity and monitor your performance in real time.</p>
+    </div>
+    <!-- Summary Cards -->
+    <div class="row mb-4 g-3 justify-content-center">
+        <div class="col-md-2">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-primary">📦 Total</h6>
+                    <p class="display-6 fw-bold">{{ total_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-info shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-info">🗓️ Today</h6>
+                    <p class="display-6 fw-bold text-info">{{ today_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">⏳ Pending</h6>
+                    <p class="display-6 fw-bold text-warning">{{ pending_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-success">✅ Fulfilled</h6>
+                    <p class="display-6 fw-bold text-success">{{ fulfilled_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-danger">❌ Declined</h6>
+                    <p class="display-6 fw-bold text-danger">{{ declined_requests }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-danger">🚩 Urgent</h6>
+                    <p class="display-6 fw-bold text-danger">{{ urgent_requests }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Graphs -->
+    <div class="row justify-content-center mt-4 g-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Request Status Completion</h6>
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center" style="height:220px;">
+                    <canvas id="radialStatusChart" width="180" height="180"></canvas>
+                </div>
+                <div class="text-center small text-muted mb-2">Fulfilled Requests Ratio</div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">Weekly Request Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="stackedBarChart" height="120"></canvas>
+                </div>
+                <div class="text-center small text-muted mb-2">All requests by day (stacked)</div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">Request Categories (Polar Area)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="polarCategoryChart" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-white">
+                    <h6 class="mb-0">Fulfilled vs Declined (Sparkline)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="sparklineTrend" height="60"></canvas>
+                </div>
+                <div class="text-center small text-muted mb-2">Last 7 Days</div>
+            </div>
+        </div>
+    </div>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Radial Progress for Fulfilled Ratio
+        const total = {{ pending_requests + fulfilled_requests + declined_requests + urgent_requests }};
+        const fulfilled = {{ fulfilled_requests }};
+        const percent = total ? Math.round((fulfilled / total) * 100) : 0;
+        const radialChart = new Chart(document.getElementById('radialStatusChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Fulfilled', 'Other'],
+                datasets: [{
+                    data: [fulfilled, total - fulfilled],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.9)',
+                        'rgba(222, 226, 230, 0.7)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                cutout: '80%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true },
+                    beforeDraw: function(chart) {
+                        var width = chart.width,
+                            height = chart.height,
+                            ctx = chart.ctx;
+                        ctx.restore();
+                        var fontSize = (height / 114).toFixed(2);
+                        ctx.font = fontSize + "em sans-serif";
+                        ctx.textBaseline = "middle";
+                        var text = percent + "%",
+                            textX = Math.round((width - ctx.measureText(text).width) / 2),
+                            textY = height / 2;
+                        ctx.fillText(text, textX, textY);
+                        ctx.save();
+                    }
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                afterDraw: chart => {
+                    const {ctx, chartArea: {width, height}} = chart;
+                    ctx.save();
+                    ctx.font = 'bold 2.2rem sans-serif';
+                    ctx.fillStyle = '#28a745';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(percent + '%', width / 2, height / 2 + 10);
+                }
+            }]
+        });
+
+        // Stacked Horizontal Bar for Weekly Requests
+        new Chart(document.getElementById('stackedBarChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Requests'],
+                datasets: [
+                    {
+                        label: {{ week_days[0]|tojson }},
+                        data: [{{ week_counts[0] }}],
+                        backgroundColor: '#007bff'
+                    },
+                    {
+                        label: {{ week_days[1]|tojson }},
+                        data: [{{ week_counts[1] }}],
+                        backgroundColor: '#17a2b8'
+                    },
+                    {
+                        label: {{ week_days[2]|tojson }},
+                        data: [{{ week_counts[2] }}],
+                        backgroundColor: '#ffc107'
+                    },
+                    {
+                        label: {{ week_days[3]|tojson }},
+                        data: [{{ week_counts[3] }}],
+                        backgroundColor: '#28a745'
+                    },
+                    {
+                        label: {{ week_days[4]|tojson }},
+                        data: [{{ week_counts[4] }}],
+                        backgroundColor: '#fd7e14'
+                    },
+                    {
+                        label: {{ week_days[5]|tojson }},
+                        data: [{{ week_counts[5] }}],
+                        backgroundColor: '#dc3545'
+                    },
+                    {
+                        label: {{ week_days[6]|tojson }},
+                        data: [{{ week_counts[6] }}],
+                        backgroundColor: '#6f42c1'
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { position: 'bottom' } },
+                responsive: true,
+                scales: {
+                    x: { stacked: true, beginAtZero: true },
+                    y: { stacked: true }
+                }
+            }
+        });
+
+        // Polar Area Chart for Categories
+        new Chart(document.getElementById('polarCategoryChart').getContext('2d'), {
+            type: 'polarArea',
+            data: {
+                labels: {{ category_labels|tojson }},
+                datasets: [{
+                    data: {{ category_counts|tojson }},
+                    backgroundColor: [
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(255, 99, 132, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'right' } }
+            }
+        });
+
+        // Sparkline for Fulfilled vs Declined Trend
+        new Chart(document.getElementById('sparklineTrend').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: {{ trend_days|tojson }},
+                datasets: [
+                    {
+                        label: 'Fulfilled',
+                        data: {{ fulfilled_trend|tojson }},
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Declined',
+                        data: {{ declined_trend|tojson }},
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false }
+                }
+            }
+        });
+    });
+    </script>
+{% endblock %}

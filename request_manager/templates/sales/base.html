@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}Sales | Request Manager{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Sales Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('sales_dashboard_page') }}">Sales Manager</a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sales_submit_request') }}">Submit Request</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sales_report') }}">Sales Report</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('request_history') }}">Request History</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sales_customers') }}">Customer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('sales_support_general') }}">Support</a></li>
+                </ul>
+                <button class="btn btn-danger" onclick="window.location.href='/logout'">Logout</button>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

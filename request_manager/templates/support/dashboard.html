@@ -1,0 +1,83 @@
+<!-- filepath: c:\Users\fulwa\Downloads\New\request_manager\templates\support\dashboard.html -->
+{% extends "support/base.html" %}
+{% block title %}Support Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="fw-bold text-primary">Welcome, {{ current_user.name }}!</h2>
+        <p class="text-muted">Here’s an overview of your support activity.</p>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-secondary">Open Tickets</h5>
+                <h2 class="fw-bold text-primary">{{ open_tickets or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-secondary">Tickets Resolved</h5>
+                <h2 class="fw-bold text-success">{{ resolved_tickets or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-secondary">Avg. Response Time</h5>
+                <h2 class="fw-bold text-info">{{ avg_response_time or '-' }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <h4 class="mb-3">Recent Tickets</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Last Update</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in recent_tickets %}
+                    <tr>
+                        <td>{{ ticket.id }}</td>
+                        <td>{{ ticket.subject }}</td>
+                        <td>
+                            {% if ticket.status == "Open" %}
+                                <span class="badge bg-warning text-dark">{{ ticket.status }}</span>
+                            {% elif ticket.status == "Resolved" %}
+                                <span class="badge bg-success">{{ ticket.status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ ticket.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('support_ticket_detail', ticket_id=ticket.id) }}" class="btn btn-sm btn-outline-primary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No recent tickets.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

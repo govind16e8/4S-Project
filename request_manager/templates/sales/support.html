@@ -1,0 +1,109 @@
+{% extends "sales/base.html" %}
+{% block title %}Request Support{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white text-center rounded-top">
+                <h3 class="mb-0">Contact Support</h3>
+            </div>
+            <div class="card-body p-4">
+                <p>
+                    Select a request from your
+                    <a href="{{ url_for('request_history') }}">Request History</a>
+                    to get support for a specific order.
+                </p>
+                <p>Or describe your issue below:</p>
+                <form method="POST" action="{{ url_for('sales_support_general') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Request ID</label>
+                        <select class="form-select" name="request_id" required>
+                            <option value="">Select your Request</option>
+                            {% for req in user_requests %}
+                                <option value="{{ req.id }}">#{{ req.id }} - {{ req.product_name }} ({{ req.status }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Issue Type</label>
+                        <select class="form-select" name="issue_type" required>
+                            <option value="">Select a common issue</option>
+                            <option value="Warehouse Delay">Warehouse Delay</option>
+                            <option value="No Response from Warehouse">No Response from Warehouse</option>
+                            <option value="Order Canceled Unexpectedly">Order Canceled Unexpectedly</option>
+                            <option value="SLA Breach">SLA Breach</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Describe the Issue</label>
+                        <textarea class="form-control" name="description" rows="4" required placeholder="Describe the problem or reason for support..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary px-4">Send to Support</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All modals go here, outside the table -->
+{% for ticket in support_tickets %}
+<div class="modal fade" id="ticketModal{{ ticket.id }}" tabindex="-1" aria-labelledby="ticketModalLabel{{ ticket.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ticketModalLabel{{ ticket.id }}">Ticket #{{ ticket.id }} Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group mb-3">
+                    <li class="list-group-item"><strong>Issue Type:</strong> {{ ticket.issue_type }}</li>
+                    <li class="list-group-item"><strong>Status:</strong> {{ ticket.status }}</li>
+                    <li class="list-group-item"><strong>Created:</strong> {{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+                    <li class="list-group-item"><strong>Last Update:</strong> {{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</li>
+                    <li class="list-group-item"><strong>Description:</strong> {{ ticket.description }}</li>
+                </ul>
+                <h6 class="mt-4 mb-2">Past Replies</h6>
+                <div class="mb-3" style="max-height:200px;overflow-y:auto;">
+                    {% if ticket.replies %}
+                        <ul class="list-group">
+                            {% for reply in ticket.replies %}
+                                <li class="list-group-item">
+                                    <div>
+                                        <strong>{{ reply.sender_name or "Support" }}</strong>
+                                        <span class="text-muted small">({{ reply.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
+                                    </div>
+                                    <div>{{ reply.message }}</div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-muted">No replies yet.</div>
+                    {% endif %}
+                </div>
+                <form method="POST" action="{{ url_for('support_ticket_reply', ticket_id=ticket.id) }}">
+                    <div class="mb-3">
+                        <label for="replyText{{ ticket.id }}" class="form-label">Your Reply</label>
+                        <textarea class="form-control" id="replyText{{ ticket.id }}" name="reply" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="moduleSelect{{ ticket.id }}" class="form-label">Send to Module</label>
+                        <select class="form-select" id="moduleSelect{{ ticket.id }}" name="module" required>
+                            <option value="">Select Module</option>
+                            <option value="Warehouse">Warehouse</option>
+                            <option value="Production">Production</option>
+                            <option value="Support">Support</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

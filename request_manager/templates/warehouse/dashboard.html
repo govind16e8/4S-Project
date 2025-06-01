@@ -1,0 +1,191 @@
+{% extends "warehouse/base.html" %}
+{% block title %}Warehouse Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Welcome to the Warehouse Dashboard!</h2>
+        <p class="lead text-secondary">Monitor inventory, manage requests, and track warehouse performance in real time.</p>
+    </div>
+    <div class="row mb-4 g-3 justify-content-center">
+        <div class="col-md-3">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-primary">📦 Total Requests</h6>
+                    <p class="display-6 fw-bold">{{ total_requests or 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">⏳ Pending</h6>
+                    <p class="display-6 fw-bold text-warning">{{ pending_requests or 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-success">✅ Fulfilled</h6>
+                    <p class="display-6 fw-bold text-success">{{ fulfilled_requests or 0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-danger">❌ Declined</h6>
+                    <p class="display-6 fw-bold text-danger">{{ declined_requests or 0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Fulfillment Ratio</div>
+                <div class="card-body d-flex justify-content-center align-items-center" style="height:220px;">
+                    <canvas id="fulfillmentRadial" width="180" height="180"></canvas>
+                </div>
+                <div class="text-center small text-muted mb-2">Fulfilled vs All Requests</div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Request Status Distribution</div>
+                <div class="card-body">
+                    <canvas id="statusStackedBar" height="120"></canvas>
+                </div>
+                <div class="text-center small text-muted mb-2">All statuses in one glance</div>
+            </div>
+        </div>
+        <div class="col-lg-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-semibold">Inventory Levels (Lollipop Chart)</div>
+                <div class="card-body">
+                    <canvas id="inventoryLollipop" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Radial Progress for Fulfillment Ratio
+        const total = {{ (pending_requests or 0) + (fulfilled_requests or 0) + (declined_requests or 0) }};
+        const fulfilled = {{ fulfilled_requests or 0 }};
+        const percent = total ? Math.round((fulfilled / total) * 100) : 0;
+        new Chart(document.getElementById('fulfillmentRadial').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Fulfilled', 'Other'],
+                datasets: [{
+                    data: [fulfilled, total - fulfilled],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.9)',
+                        'rgba(222, 226, 230, 0.7)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                cutout: '80%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                afterDraw: chart => {
+                    const {ctx, chartArea: {width, height}} = chart;
+                    ctx.save();
+                    ctx.font = 'bold 2.2rem sans-serif';
+                    ctx.fillStyle = '#28a745';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(percent + '%', width / 2, height / 2 + 10);
+                }
+            }]
+        });
+
+        // Horizontal Stacked Bar for Request Status
+        new Chart(document.getElementById('statusStackedBar').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Requests'],
+                datasets: [
+                    {
+                        label: 'Pending',
+                        data: [{{ pending_requests or 0 }}],
+                        backgroundColor: '#ffc107'
+                    },
+                    {
+                        label: 'Fulfilled',
+                        data: [{{ fulfilled_requests or 0 }}],
+                        backgroundColor: '#28a745'
+                    },
+                    {
+                        label: 'Declined',
+                        data: [{{ declined_requests or 0 }}],
+                        backgroundColor: '#dc3545'
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { position: 'bottom' } },
+                responsive: true,
+                scales: {
+                    x: { stacked: true, beginAtZero: true },
+                    y: { stacked: true }
+                }
+            }
+        });
+
+        // Lollipop Chart for Inventory Levels (customized scatter+bar)
+        const inventoryLabels = {{ inventory_labels|tojson|safe }};
+        const inventoryData = {{ inventory_data|tojson|safe }};
+        const lollipopData = inventoryLabels.map((label, i) => ({
+            x: inventoryData[i],
+            y: label
+        }));
+        new Chart(document.getElementById('inventoryLollipop').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: inventoryLabels,
+                datasets: [{
+                    label: 'Stock',
+                    data: inventoryData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    borderSkipped: false,
+                    barPercentage: 0.5,
+                    categoryPercentage: 0.7
+                }, {
+                    type: 'scatter',
+                    label: 'Stock Point',
+                    data: lollipopData,
+                    backgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 7,
+                    pointHoverRadius: 10,
+                    showLine: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+    });
+    </script>
+{% endblock %}

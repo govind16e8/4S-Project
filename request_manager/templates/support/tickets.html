@@ -1,0 +1,100 @@
+<!-- filepath: c:\Users\fulwa\Downloads\New\request_manager\templates\support\tickets.html -->
+{% extends "support/base.html" %}
+{% block title %}Support Tickets{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold text-primary">All Support Tickets</h2>
+        <p class="text-muted">View and manage all tickets assigned to you.</p>
+    </div>
+</div>
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Last Update</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td>{{ ticket.id }}</td>
+                        <td>{{ ticket.subject if ticket.subject else ticket.issue_type }}</td>
+                        <td>
+                            {% if ticket.status == "Open" %}
+                                <span class="badge bg-warning text-dark">{{ ticket.status }}</span>
+                            {% elif ticket.status == "Resolved" %}
+                                <span class="badge bg-success">{{ ticket.status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ ticket.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#ticketModal{{ ticket.id }}">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal for ticket details and reply -->
+                    <div class="modal fade" id="ticketModal{{ ticket.id }}" tabindex="-1" aria-labelledby="ticketModalLabel{{ ticket.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="ticketModalLabel{{ ticket.id }}">Ticket #{{ ticket.id }} Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <ul class="list-group mb-3">
+                                        <li class="list-group-item"><strong>Subject:</strong> {{ ticket.subject if ticket.subject else ticket.issue_type }}</li>
+                                        <li class="list-group-item"><strong>Status:</strong> {{ ticket.status }}</li>
+                                        <li class="list-group-item"><strong>Created:</strong> {{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</li>
+                                        <li class="list-group-item"><strong>Last Update:</strong> {{ ticket.updated_at.strftime('%Y-%m-%d %H:%M') }}</li>
+                                        <li class="list-group-item"><strong>Description:</strong> {{ ticket.description }}</li>
+                                    </ul>
+                                    <form method="POST" action="{{ url_for('support_ticket_reply', ticket_id=ticket.id) }}">
+                                        <div class="mb-3">
+                                            <label for="replyText{{ ticket.id }}" class="form-label">Reply</label>
+                                            <textarea class="form-control" id="replyText{{ ticket.id }}" name="reply" rows="3" required></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="moduleSelect{{ ticket.id }}" class="form-label">Send to Module</label>
+                                            <select class="form-select" id="moduleSelect{{ ticket.id }}" name="module" required>
+                                                <option value="">Select Module</option>
+                                                <option value="Warehouse">Warehouse</option>
+                                                <option value="Production">Production</option>
+                                                <option value="Support">Support</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Send</button>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No tickets found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
